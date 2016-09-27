@@ -76,7 +76,9 @@ def drain(file_like, read_size, timeout):
 
     :raises ChunkReadTimeout: if no chunk was read in time
     """
-
+    #@ set timeout to none
+    timeout = None
+    #@ set timeout to none
     while True:
         with ChunkReadTimeout(timeout):
             chunk = file_like.read(read_size)
@@ -124,7 +126,10 @@ class ObjectController(BaseStorageServer):
         self.container_update_timeout = float(
             conf.get('container_update_timeout', 1))
         self.conn_timeout = float(conf.get('conn_timeout', 0.5))
-        self.client_timeout = int(conf.get('client_timeout', 60))
+        # self.client_timeout = int(conf.get('client_timeout', 60))
+        #@ set timeout
+        self.client_timeout = int(conf.get('client_timeout', 100000000))
+        #@ set timeout
         self.disk_chunk_size = int(conf.get('disk_chunk_size', 65536))
         self.network_chunk_size = int(conf.get('network_chunk_size', 65536))
         self.log_requests = config_true_value(conf.get('log_requests', 'true'))
@@ -867,6 +872,8 @@ class ObjectController(BaseStorageServer):
     @timing_stats()
     def GET(self, request):
         """Handle HTTP GET requests for the Swift Object Server."""
+        import rpdb2
+        rpdb2.start_embedded_debugger('12345',fAllowRemote=True)
         device, partition, account, container, obj, policy = \
             get_name_and_placement(request, 5, 5, True)
         frag_prefs = safe_json_loads(
