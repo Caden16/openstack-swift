@@ -14,39 +14,38 @@
 # limitations under the License.
 
 import json
+import math
 import os
 import time
 import traceback
-import math
-from swift import gettext_ as _
+from eventlet import Timeout
 from xml.etree.cElementTree import Element, SubElement, tostring
 
-from eventlet import Timeout
-
 import swift.common.db
-from swift.container.sync_store import ContainerSyncStore
-from swift.container.backend import ContainerBroker, DATADIR
-from swift.container.replicator import ContainerReplicatorRpc
-from swift.common.db import DatabaseAlreadyExists
+from swift import gettext_ as _
+from swift.common import constraints
+from swift.common.base_storage_server import BaseStorageServer
+from swift.common.bufferedhttp import http_connect
+from swift.common.constraints import check_mount, valid_timestamp, check_utf8
 from swift.common.container_sync_realms import ContainerSyncRealms
+from swift.common.db import DatabaseAlreadyExists
+from swift.common.exceptions import ConnectionTimeout
+from swift.common.header_key_dict import HeaderKeyDict
+from swift.common.http import HTTP_NOT_FOUND, is_success
 from swift.common.request_helpers import get_param, get_listing_content_type, \
     split_and_validate_path, is_sys_or_user_meta
-from swift.common.utils import get_logger, hash_path, public, \
-    Timestamp, storage_directory, validate_sync_to, \
-    config_true_value, timing_stats, replication, \
-    override_bytes_from_content_type, get_log_line
-from swift.common.constraints import check_mount, valid_timestamp, check_utf8
-from swift.common import constraints
-from swift.common.bufferedhttp import http_connect
-from swift.common.exceptions import ConnectionTimeout
-from swift.common.http import HTTP_NOT_FOUND, is_success
 from swift.common.storage_policy import POLICIES
-from swift.common.base_storage_server import BaseStorageServer
-from swift.common.header_key_dict import HeaderKeyDict
 from swift.common.swob import HTTPAccepted, HTTPBadRequest, HTTPConflict, \
     HTTPCreated, HTTPInternalServerError, HTTPNoContent, HTTPNotFound, \
     HTTPPreconditionFailed, HTTPMethodNotAllowed, Request, Response, \
     HTTPInsufficientStorage, HTTPException
+from swift.common.utils import get_logger, hash_path, public, \
+    Timestamp, storage_directory, validate_sync_to, \
+    config_true_value, timing_stats, replication, \
+    override_bytes_from_content_type, get_log_line
+from swift.container.backend import ContainerBroker, DATADIR
+from swift.container.replicator import ContainerReplicatorRpc
+from swift.container.sync_store import ContainerSyncStore
 
 
 def gen_resp_headers(info, is_deleted=False):
@@ -466,6 +465,9 @@ class ContainerController(BaseStorageServer):
         """Handle HTTP GET request."""
         drive, part, account, container, obj = split_and_validate_path(
             req, 4, 5, True)
+
+        # import pydevd
+        # pydevd.settrace('172.29.132.122', port=5678, stdoutToServer=True, stderrToServer=True)
         path = get_param(req, 'path')
         prefix = get_param(req, 'prefix')
         delimiter = get_param(req, 'delimiter')

@@ -17,32 +17,30 @@ import collections
 import errno
 import os
 import uuid
-from swift import gettext_ as _
-from time import ctime, time
+from eventlet import sleep, Timeout
 from random import choice, random
 from struct import unpack_from
-
-from eventlet import sleep, Timeout
+from time import ctime, time
 
 import swift.common.db
-from swift.common.db import DatabaseConnectionError
-from swift.container.backend import ContainerBroker
-from swift.container.sync_store import ContainerSyncStore
+from swift import gettext_ as _
 from swift.common.container_sync_realms import ContainerSyncRealms
+from swift.common.daemon import Daemon
+from swift.common.db import DatabaseConnectionError
+from swift.common.exceptions import ClientException
+from swift.common.http import HTTP_UNAUTHORIZED, HTTP_NOT_FOUND
 from swift.common.internal_client import (
     delete_object, put_object, head_object,
     InternalClient, UnexpectedResponse)
-from swift.common.exceptions import ClientException
 from swift.common.ring import Ring
 from swift.common.ring.utils import is_local_device
 from swift.common.utils import (
     clean_content_type, config_true_value,
     FileLikeIter, get_logger, hash_path, quote, urlparse, validate_sync_to,
     whataremyips, Timestamp, decode_timestamps)
-from swift.common.daemon import Daemon
-from swift.common.http import HTTP_UNAUTHORIZED, HTTP_NOT_FOUND
 from swift.common.wsgi import ConfigString
-
+from swift.container.backend import ContainerBroker
+from swift.container.sync_store import ContainerSyncStore
 
 # The default internal client config body is to support upgrades without
 # requiring deployment of the new /etc/swift/internal-client.conf
@@ -150,6 +148,8 @@ class ContainerSync(Daemon):
     """
 
     def __init__(self, conf, container_ring=None, logger=None):
+        # import pydevd
+        # pydevd.settrace('172.29.132.122', port=5678, stdoutToServer=True, stderrToServer=True)
         #: The dict of configuration values from the [container-sync] section
         #: of the container-server.conf.
         self.conf = conf

@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright (c) 2010-2012 OpenStack Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,22 +19,22 @@
 from __future__ import print_function
 
 import errno
+import eventlet
+import eventlet.debug
 import inspect
 import os
 import signal
-import time
-from swift import gettext_ as _
-from textwrap import dedent
-
-import eventlet
-import eventlet.debug
-from eventlet import greenio, GreenPool, sleep, wsgi, listen, Timeout
-from paste.deploy import loadwsgi
-from eventlet.green import socket, ssl, os as green_os
 import six
+import time
+from eventlet import greenio, GreenPool, sleep, wsgi, listen, Timeout
+from eventlet.green import socket, ssl, os as green_os
+from paste.deploy import loadwsgi
 from six import BytesIO
 from six import StringIO
 from six.moves.urllib.parse import unquote
+from textwrap import dedent
+
+from swift import gettext_ as _
 if six.PY2:
     import mimetools
 
@@ -392,7 +393,7 @@ def loadapp(conf_file, global_conf=None, allow_modify_pipeline=True):
         app = ctx.app_context.create()
         func = getattr(app, 'modify_wsgi_pipeline', None)
         if func and allow_modify_pipeline:
-            func(PipelineWrapper(ctx))
+            func(PipelineWrapper(ctx))  # @ node_timeout is definded in func, default is 10s
     return ctx.create()
 
 
@@ -417,7 +418,7 @@ def run_server(conf, logger, sock, global_conf=None):
     #     monkey-patching select is required by oslo.messaging pika driver
     #         if thread is monkey-patched.
     eventlet.patcher.monkey_patch(all=False, socket=True, select=True,
-                                  thread=False)
+                                  thread=True)
     eventlet_debug = config_true_value(conf.get('eventlet_debug', 'no'))
     eventlet.debug.hub_exceptions(eventlet_debug)
     wsgi_logger = NullLogger()
@@ -915,7 +916,7 @@ def run_wsgi(conf_path, app_section, *args, **kwargs):
     capture_stdio(logger)
 
     no_fork_sock = strategy.no_fork_sock()
-    if no_fork_sock:
+    if no_fork_sock:  #@worker == 0
         run_server(conf, logger, no_fork_sock, global_conf=global_conf)
         return 0
 
@@ -957,7 +958,11 @@ def run_wsgi(conf_path, app_section, *args, **kwargs):
         # timeout for the green_os.wait().
         loop_timeout = strategy.loop_timeout()
 
-        with Timeout(loop_timeout, exception=False):
+        # @ 设置超时时间
+        loop_timeout = 10000000000
+        # @ 设置超时时间
+
+        with Timeout(loop_timeout, exception=False):  #@ 设置超时时间
             try:
                 try:
                     pid, status = green_os.wait()

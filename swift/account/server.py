@@ -16,7 +16,6 @@
 import os
 import time
 import traceback
-
 from eventlet import Timeout
 
 import swift.common.db
@@ -183,8 +182,10 @@ class AccountController(BaseStorageServer):
     @timing_stats()
     def GET(self, req):
         # import pydevd
-        # pydevd.settrace('127.0.0.1',port=5678)
+        # pydevd.settrace('172.29.132.122', port=5678)
         """Handle HTTP GET request."""
+        # import rpdb2
+        # rpdb2.start_embedded_debugger("12345")
         drive, part, account = split_and_validate_path(req, 3)
         prefix = get_param(req, 'prefix')
         delimiter = get_param(req, 'delimiter')

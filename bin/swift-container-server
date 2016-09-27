@@ -15,9 +15,13 @@
 # limitations under the License.
 
 import sys
+
 from swift.common.utils import parse_options
 from swift.common.wsgi import run_wsgi
 
 if __name__ == '__main__':
     conf_file, options = parse_options()
+    import rpdb2
+
+    rpdb2.start_embedded_debugger('12345', fAllowRemote=True)
     sys.exit(run_wsgi(conf_file, 'container-server', **options))

@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright (c) 2010-2012 OpenStack Foundation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,18 +15,19 @@
 # limitations under the License.
 
 from __future__ import print_function
-import functools
+
 import errno
+import functools
 import os
+import re
 import resource
 import signal
-import time
 import subprocess
-import re
-from swift import gettext_ as _
+import time
 
-from swift.common.utils import search_tree, remove_file, write_file
+from swift import gettext_ as _
 from swift.common.exceptions import InvalidPidFileException
+from swift.common.utils import search_tree, remove_file, write_file
 
 SWIFT_DIR = '/etc/swift'
 RUN_DIR = '/var/run/swift'
@@ -187,7 +189,8 @@ class Manager(object):
         self.server_names = set()
         self._default_strict = True
         for server in servers:
-            if server in ALIASES:
+            if server in ALIASES:  # @ ALIASES 是一个字典,包含需要启动的服务器类型,
+                # @ ALIASES {'all': ['account-auditor', 'account-server', 'container-auditor', 'container-replicator', 'container-reconciler', 'container-server', 'container-sync', 'container-updater', 'object-auditor', 'object-server', 'object-expirer', 'object-replicator', 'object-reconstructor', 'object-updater', 'proxy-server', 'account-replicator', 'account-reaper'], 'main': ['proxy-server', 'account-server', 'container-server', 'object-server'], 'rest': ['account-auditor', 'container-auditor', 'container-replicator', 'container-reconciler', 'container-sync', 'container-updater', 'object-auditor', 'object-expirer', 'object-replicator', 'object-reconstructor', 'object-updater', 'account-replicator', 'account-reaper']}
                 self.server_names.update(ALIASES[server])
                 self._default_strict = False
             elif '*' in server:
@@ -199,7 +202,7 @@ class Manager(object):
             else:
                 self.server_names.add(server)
 
-        self.servers = set()
+        self.servers = set()  #@ 添加需要启动的服务名称 , 并把cmd处理为swift-...的格式 如key为container-server:{cmd:swift-container-server,conf:None,procs:[],run_dir:'/var/run/swift',server:'container-server',type:'container'}
         for name in self.server_names:
             self.servers.add(Server(name, run_dir))
 
@@ -378,7 +381,8 @@ class Manager(object):
 
         """
         cmd = cmd.lower().replace('-', '_')
-        f = getattr(self, cmd, None)
+        f = getattr(self, cmd,
+                    None)  #@ <bound method Manager.start of <swift.common.manager.Manager object at 0x7fa434f50dd0>>
         if f is None:
             raise UnknownCommandError(cmd)
         if not hasattr(f, 'publicly_accessible'):
@@ -647,6 +651,8 @@ class Server(object):
 
         :returns: the pid of the spawned process
         """
+        # import rpdb2
+        # rpdb2.start_embedded_debugger("12345")
         args = [self.cmd, conf_file]
         if once:
             args.append('once')
@@ -666,8 +672,9 @@ class Server(object):
                 re_out = subprocess.PIPE
             else:
                 re_out = open(os.devnull, 'w+b')
-        proc = subprocess.Popen(args, stdout=re_out, stderr=re_err)
-        pid_file = self.get_pid_file_name(conf_file)
+        proc = subprocess.Popen(args, stdout=re_out,
+                                stderr=re_err)  # @ 启动子进程 args:['swift-container-updater', '/etc/swift/container-server/1.conf']
+        pid_file = self.get_pid_file_name(conf_file)  #@ '/var/run/swift/container-updater/1.pid'
         write_file(pid_file, proc.pid)
         self.procs.append(proc)
         return proc.pid

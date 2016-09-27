@@ -52,6 +52,8 @@ def main():
     parser = OptionParser(USAGE)
     # import pydevd
     # pydevd.settrace('172.29.132.122')
+    # import ptvsd
+    # ptvsd.settrace(None,('0.0.0.0', 5678))
     parser.add_option('-v', '--verbose', action="store_true",
                       default=False, help="display verbose output")
     parser.add_option('-w', '--no-wait', action="store_false", dest="wait",
@@ -97,8 +99,8 @@ def main():
         print('ERROR: specify server(s) and command')
         return 1
 
-    command = args[-1]
-    servers = args[:-1]
+    command = args[-1]  # @ get user input command , like : start / stop
+    servers = args[:-1]  # @ get user input , like : all (all server)
 
     # this is just a silly swap for me cause I always try to "start main"
     commands = dict(Manager.list_commands()).keys()
@@ -106,7 +108,7 @@ def main():
         servers.append(command)
         command = servers.pop(0)
 
-    manager = Manager(servers, run_dir=options.run_dir)
+    manager = Manager(servers, run_dir=options.run_dir)  #@ manage the server
     try:
         status = manager.run_command(command, **options.__dict__)
     except UnknownCommandError:
